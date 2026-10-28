@@ -1,3 +1,4 @@
+import {respond} from './lib/http.mjs';
 import {json} from './lib/telegram.mjs';import {partnerStore} from './lib/partner-store.mjs';
 export function createPromoHandler(storeFactory=partnerStore){return async event=>{
  if(event.httpMethod!=='POST')return json(405,{error:'method'});let code;
@@ -5,4 +6,5 @@ export function createPromoHandler(storeFactory=partnerStore){return async event
  try{const record=await storeFactory().get(`codes/${code}`,{type:'json'});if(!record||record.code!==code)return json(404,{error:'not_found'});
  return json(200,{code,weeklyPrice:800,regularWeeklyPrice:2667,discountPercent:70,trialDays:2,paymentsConnected:false});}catch{return json(503,{error:'storage_unavailable'});}
 };}
-export const handler=createPromoHandler();
+const handle=createPromoHandler();
+export default async function(request){return respond(request,handle);}

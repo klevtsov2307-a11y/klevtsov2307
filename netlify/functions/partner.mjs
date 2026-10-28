@@ -1,3 +1,4 @@
+import {respond} from './lib/http.mjs';
 import {createHmac} from 'node:crypto';
 import {verifyTelegram,json} from './lib/telegram.mjs';
 import {partnerStore} from './lib/partner-store.mjs';
@@ -22,4 +23,5 @@ export function createPartnerHandler(storeFactory=partnerStore){return async eve
  return json(200,{registered:true,name:user.first_name||'Партнёр',code:record.code,weeklyPrice:800,shareBeforeFees:400,discountPercent:70,paymentsConnected:false,stats:null});
  }catch{return json(503,{error:'storage_unavailable'});}
 };}
-export const handler=createPartnerHandler();
+const handle=createPartnerHandler();
+export default async function(request){return respond(request,handle);}
