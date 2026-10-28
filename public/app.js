@@ -1,6 +1,7 @@
 const app = document.querySelector('#app');
 const tg = window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
+try {tg?.setHeaderColor?.("#faf8f4"); tg?.setBackgroundColor?.("#faf8f4"); tg?.setBottomBarColor?.("#ffffff");} catch {}
 const read = (key, fallback) => {try {return JSON.parse(localStorage.getItem(key)) ?? fallback;} catch {return fallback;}};
 let storageAvailable = true;
 const write = (key, value) => {try {localStorage.setItem(key, JSON.stringify(value));} catch {storageAvailable = false;}};
@@ -21,7 +22,14 @@ const pos = () => {const v = Number(read('plan-d-villa-position-v1', 0)); return
 function persist() {write('plan-d-villa-position-v1', audio.ended ? 0 : audio.currentTime);}
 function saveSettings() {settings = {speed:audio.playbackRate, volume:audio.volume};write('pd-settings', settings);}
 function storyCard() {return `<article class="story-card"><div class="cover villa"><span class="cover-label">ДОМ · МОРЕ · РОСКОШЬ</span><span class="cover-title">Моя вилла<br>у моря</span><span class="cover-length">18:21 · Аудиоистория</span></div><div class="card-body"><div class="row"><span class="eyebrow">ТВОЙ ИДЕАЛЬНЫЙ ДЕНЬ</span><button class="heart" data-action="favorite" aria-label="${favorite?'Убрать из избранного':'В избранное'}" aria-pressed="${favorite}">${favorite?'♥':'♡'}</button></div><p>Проснуться с видом на море. Почувствовать прохладу мрамора. Провести день в своём ритме.</p><button data-action="player">${pos()>0?'Продолжить историю':'Открыть историю'} <span>↗</span></button></div></article>`;}
-function nav() {return `<nav class="bottom-nav" aria-label="Основное меню">${[['home','⌂','Главная'],['library','▤','Истории'],['favorites','♡','Избранное'],['profile','◯','Профиль']].map(([id,icon,label])=>`<button data-screen="${id}" class="${screen===id?'active':''}" ${screen===id?'aria-current="page"':''}><span>${icon}</span>${label}</button>`).join('')}</nav>`;}
+const icons = {
+ home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
+ library:'<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 7h8M8 11h8M8 15h5"/>',
+ favorites:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
+ settings:'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/>',
+ profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'
+};
+function nav() {return `<nav class="bottom-nav" aria-label="Основное меню">${[['home','Главная'],['library','Истории'],['favorites','Избранное'],['settings','Настройки'],['profile','Профиль']].map(([id,label])=>`<button data-screen="${id}" class="${screen===id?'active':''}" ${screen===id?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg><span>${label}</span></button>`).join('')}</nav>`;}
 function onboarding() {app.innerHTML = `<div class="eyebrow">ДОБРО ПОЖАЛОВАТЬ В ПЛАН Д</div><h1>Сначала представь.<br>Потом — почувствуй.</h1><div class="cover villa welcome"><span class="cover-title">Твой красивый<br>вечерний ритуал</span></div><p>Истории о жизни, которую приятно воображать. Дорогие вещи, красивые места и время для себя.</p><form id="join"><label for="name">Как тебя называть?</label><input id="name" name="name" maxlength="40" placeholder="Твоё имя" autocomplete="given-name" value="${escape(tg?.initDataUnsafe?.user?.first_name || '')}"><button type="submit">${tg?.initDataUnsafe?.user?'Продолжить с профилем Telegram':'Создать локальный профиль'} →</button></form><button class="secondary" data-action="guest">Попробовать без профиля</button><p class="fine">Пароль не нужен. Пока это профиль на этом устройстве: история прослушивания и настройки не синхронизируются между телефонами.</p>`;document.querySelector('#join').onsubmit=e=>{e.preventDefault();profile={name:document.querySelector('#name').value.trim()||'Гость'};write('pd-profile',profile);render();};}
 function render() {
  if (!profile) return onboarding();
