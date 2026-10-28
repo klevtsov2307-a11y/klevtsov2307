@@ -1,0 +1,4 @@
+import http from 'node:http';
+import {readFile} from 'node:fs/promises';
+const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/content.js':'content.js'};
+http.createServer(async(req,res)=>{const path=new URL(req.url,'http://localhost').pathname;if(path==='/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end('{"ok":true}');}if(!files[path]){res.writeHead(404);return res.end('Not found');}try{const body=await readFile(new URL('./public/'+files[path],import.meta.url));res.writeHead(200,{'Content-Type':path.endsWith('.js')?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8','X-Content-Type-Options':'nosniff'});res.end(body);}catch{res.writeHead(500);res.end('Server error');}}).listen(Number(process.env.PORT)||3000,'0.0.0.0');
