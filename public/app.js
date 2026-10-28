@@ -1,12 +1,48 @@
-import {slots,validChoices,randomChoices,makeStory} from './content.js';
-const app=document.querySelector('#app');let choices=Array(16).fill(0),step=0,playing=false,utterance=null,generation=0,audioUrl=null;
-const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
-function stored(){try{const v=JSON.parse(localStorage.getItem('plan-d-v1'));return validChoices(v)?v:null;}catch{return null;}}
-function save(){try{localStorage.setItem('plan-d-v1',JSON.stringify(choices));return true;}catch{return false;}}
-function stop(){generation++;window.speechSynthesis?.cancel();playing=false;utterance=null;document.querySelector('audio')?.pause();}
-function bind(id,fn){document.getElementById(id)?.addEventListener('click',fn);}
-function home(){stop();app.innerHTML=`<div class="eyebrow">ВООБРАЗИ. ПОЧУВСТВУЙ. ОТДОХНИ.</div><h1>Засыпай с мыслью<br>о прекрасном дне.</h1><p>Твой дом. Любимое дело. Время для себя.<br>Проживи в воображении день, в котором тебе хорошо.</p><div class="landscape" role="img" aria-label="Солнце над тихими холмами"></div><div class="card"><div class="meta">01 / ДОВЕРЬСЯ ИСТОРИИ</div><h2>День, который ждёт тебя</h2><p>Случайная история из наших сюжетов. Просто устройся поудобнее и включи.</p><button id="random">✦ Выбрать готовый день</button></div><div class="card"><div class="meta">02 / СОБЕРИ СВОЁ</div><h2>А если всё по-твоему?</h2><p>16 маленьких выборов — от первого солнечного луча до мягкой подушки вечером.</p><button class="secondary" id="build">Собрать свой день →</button></div>${stored()?'<button class="secondary" id="saved">Открыть мой сохранённый день</button>':''}`;bind('random',()=>{choices=randomChoices();player();});bind('build',()=>{choices=stored()||Array(16).fill(0);step=0;builder();});bind('saved',()=>{choices=stored();player();});}
-function builder(){stop();const s=slots[step];app.innerHTML=`<button class="back" id="home">← На главную</button><div class="progress"><i style="width:${(step+1)/16*100}%"></i></div><span class="eyebrow">ТВОЙ ДЕНЬ · ${step+1} ИЗ 16</span><h1>${s[1]}</h1><span class="pill">${s[0]}</span><p>Выбери то, что сейчас ближе. Здесь нет правильного ответа.</p><div id="options"></div><div class="row"><button class="secondary" id="prev" ${step===0?'disabled':''}>Назад</button><button id="next">${step===15?'Мой день готов ✦':'Дальше →'}</button></div>`;const container=document.getElementById('options');s[2].forEach((o,i)=>{const b=document.createElement('button');b.className='option'+(choices[step]===i?' selected':'');b.textContent=o[0];b.setAttribute('aria-pressed',String(choices[step]===i));b.onclick=()=>{choices[step]=i;builder();};container.append(b);});bind('home',home);bind('prev',()=>{step--;builder();});bind('next',()=>{if(step===15){player();}else{step++;builder();}window.scrollTo(0,0);});}
-function player(){stop();const story=makeStory(choices);const mins=Math.ceil(story.split(/\s+/).length/105);const saved=save();app.innerHTML=`<button class="back" id="home">← На главную</button><div class="landscape"></div><div class="eyebrow">ТВОЯ ЛИЧНАЯ ИСТОРИЯ</div><h1>Этот день — для тебя.</h1><span class="pill">16 моментов</span><span class="pill">≈ ${mins} мин чтения</span><p>${saved?'Выборы сохранены на этом устройстве.':'Сохранение на устройстве недоступно. История доступна до закрытия страницы.'} Устройся удобно. Громкость можно сделать чуть тише.</p><button id="play">▶ Слушать пробную озвучку</button><button id="stop" class="secondary">Остановить</button><p class="status" id="status" role="status" aria-live="polite">Пробная озвучка использует голос устройства. Профессиональное аудио пока не подключено.</p><div class="card"><div class="meta">ГОТОВАЯ ОЗВУЧКА</div><p>Есть аудио из ElevenLabs или другого сервиса? Выбери файл, чтобы слушать его здесь. Файл остаётся на устройстве и не сохраняется после закрытия.</p><input aria-label="Загрузить аудио" id="audio-file" type="file" accept="audio/*"><audio controls preload="metadata" aria-label="Проигрыватель готовой озвучки"></audio></div><div class="row"><button class="secondary" id="edit">Изменить день</button><button class="secondary" id="download">Скачать текст</button></div><details><summary>Прочитать мою историю</summary><div class="story" id="story"></div></details>`;document.getElementById('story').textContent=story;bind('home',home);bind('edit',()=>{step=0;builder();});bind('stop',()=>{stop();document.getElementById('status').textContent='Воспроизведение остановлено.';document.getElementById('play').textContent='▶ Слушать сначала';});bind('play',()=>speak(story));bind('download',()=>{const u=URL.createObjectURL(new Blob([story],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download='Мой день — План Д.txt';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});document.getElementById('audio-file').onchange=e=>{const f=e.target.files[0];if(!f)return;stop();if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(f);document.querySelector('audio').src=audioUrl;};document.querySelector('audio').onplay=()=>{generation++;window.speechSynthesis?.cancel();playing=false;};}
-function speak(story){const status=document.getElementById('status'),button=document.getElementById('play');if(!('speechSynthesis'in window)){status.textContent='На этом устройстве пробное чтение недоступно. Используй готовый аудиофайл или скачай текст для озвучки.';return;}if(playing){if(speechSynthesis.paused){speechSynthesis.resume();button.textContent='Ⅱ Пауза';}else{speechSynthesis.pause();button.textContent='▶ Продолжить';}return;}stop();playing=true;const token=generation;const chunks=story.split(/\n\n/);let index=0;const next=()=>{if(token!==generation)return;if(index>=chunks.length){playing=false;button.textContent='▶ Слушать ещё раз';status.textContent='Спокойной ночи. История завершена.';return;}utterance=new SpeechSynthesisUtterance(chunks[index++]);utterance.lang='ru-RU';utterance.rate=.85;const voice=speechSynthesis.getVoices().find(v=>v.lang.startsWith('ru'));if(voice)utterance.voice=voice;utterance.onend=next;utterance.onerror=e=>{if(token!==generation)return;playing=false;button.textContent='▶ Попробовать снова';status.textContent='Устройство не смогло прочитать историю. Можно загрузить готовое аудио. Код: '+e.error;};speechSynthesis.speak(utterance);};button.textContent='Ⅱ Пауза';status.textContent='Чтение голосом устройства. При блокировке экрана Telegram может прервать воспроизведение.';next();}
-window.addEventListener('pagehide',stop);home();
+const app = document.querySelector('#app');
+window.Telegram?.WebApp?.ready();
+window.Telegram?.WebApp?.expand();
+app.innerHTML = `<div class="eyebrow">КОЛЛЕКЦИЯ ИДЕАЛЬНЫХ ДНЕЙ</div>
+<h1>Твоя вилла.<br>Твоё море. Твой день.</h1>
+<p>Большой дом на побережье, любимые вещи и удовольствие от каждого мгновения. Устройся удобно и проживи этот день в воображении.</p>
+<div class="landscape" role="img" aria-label="Тёплое солнце над морским побережьем"></div>
+<article class="card"><div class="meta">01 / МОЯ ВИЛЛА У МОРЯ</div>
+<h2>Роскошь быть дома</h2><span class="pill">18 минут 21 секунда</span><span class="pill">Готовая озвучка</span>
+<p>От первого света в просторной спальне до тихого вечера на собственной террасе. Одна цельная история.</p>
+<audio id="audio" controls preload="metadata" aria-label="Моя вилла у моря"><source src="/audio/villa-sea.mp3" type="audio/mpeg"></audio>
+<button id="play">▶ Слушать историю</button>
+<div class="row"><button class="secondary" id="rewind">↶ 15 секунд</button><button class="secondary" id="restart">С начала</button></div>
+<p id="status" class="status" role="status" aria-live="polite">Нажми «Слушать историю», когда будешь готов.</p>
+<label for="speed">Скорость</label> <select id="speed" aria-label="Скорость воспроизведения"><option value="0.85">0,85×</option><option value="1" selected>1×</option><option value="1.15">1,15×</option></select>
+<p>Место остановки сохраняется на этом устройстве. Прослушивание с выключенным экраном зависит от Telegram и телефона.</p>
+<a class="download" href="/audio/villa-sea.mp3" download="Моя вилла у моря.mp3">Скачать историю в MP3 ↓</a>
+</article><p>Новые идеальные дни скоро появятся в коллекции.</p>`;
+const audio = document.querySelector('#audio');
+const button = document.querySelector('#play');
+const status = document.querySelector('#status');
+const key = 'plan-d-villa-position-v1';
+let lastSave = 0;
+function persist() { try {localStorage.setItem(key, String(audio.ended ? 0 : audio.currentTime));} catch {} }
+audio.addEventListener('loadedmetadata', () => {
+  try { const position = Number(localStorage.getItem(key));
+    if (Number.isFinite(position) && position > 0 && position < audio.duration - 2) {
+      audio.currentTime = position;
+      status.textContent = 'Продолжим с места, где ты остановился.';
+    }
+  } catch {}
+});
+button.onclick = async () => {
+  if (!audio.paused) {audio.pause(); return;}
+  try { await audio.play(); } catch {status.textContent = 'Не удалось начать воспроизведение. Попробуй встроенную кнопку плеера или скачай MP3.';}
+};
+audio.addEventListener('play', () => {button.textContent = 'Ⅱ Пауза'; status.textContent = 'Твой идеальный день начинается. Приятного прослушивания.';});
+audio.addEventListener('pause', () => {button.textContent = '▶ Продолжить'; persist(); if (!audio.ended) status.textContent = 'Пауза. Можно продолжить, когда захочешь.';});
+audio.addEventListener('ended', () => {button.textContent = '▶ Слушать ещё раз'; status.textContent = 'Спокойной ночи. История завершена.'; persist();});
+audio.addEventListener('error', () => {status.textContent = 'Аудио не загрузилось. Проверь интернет и переоткрой приложение.';});
+audio.addEventListener('timeupdate', () => {if (Date.now() - lastSave > 4000) {persist(); lastSave = Date.now();}});
+document.querySelector('#rewind').onclick = () => {audio.currentTime = Math.max(0, audio.currentTime - 15); persist();};
+document.querySelector('#restart').onclick = () => {audio.currentTime = 0; persist(); status.textContent = 'История готова к прослушиванию с начала.';};
+document.querySelector('#speed').onchange = e => {audio.playbackRate = Number(e.target.value);};
+window.addEventListener('pagehide', persist);
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.metadata = new MediaMetadata({title:'Моя вилла у моря',artist:'План Д · Аффирма'});
+}
