@@ -4,7 +4,8 @@ import {mountPartner} from './partners.js?v=20261029-checkout2';
 import {albumHTML, attachAlbum, albumComplete} from './album.js?v=20261029-checkout2';
 const app = document.querySelector('#app');
 const tg = window.Telegram?.WebApp;
-const partnerMode=new URLSearchParams(window.location?.search||'').get('partner')==='1'||tg?.initDataUnsafe?.start_param==='partner';
+const partnerFlag=new URLSearchParams(window.location?.search||'').get('partner');
+const partnerMode=partnerFlag==='1'||(partnerFlag!=='0'&&tg?.initDataUnsafe?.start_param==='partner');
 tg?.ready(); tg?.expand();
 try {tg?.setHeaderColor?.("#faf8f4"); tg?.setBackgroundColor?.("#faf8f4"); tg?.setBottomBarColor?.("#ffffff");} catch {}
 const read = (key, fallback) => {try {return JSON.parse(localStorage.getItem(key)) ?? fallback;} catch {return fallback;}};
@@ -22,7 +23,7 @@ let paymentStep = 'offer';
 const routes=createRouteHistory();
 const backButton=document.createElement('button');backButton.className='page-back';backButton.type='button';backButton.setAttribute('aria-label','Вернуться назад');backButton.textContent='← Назад';app.before(backButton);
 function goBack(){
- if(partnerMode){const url=new URL(window.location.href);url.searchParams.delete('partner');url.hash=window.location.hash;window.location.assign(url.pathname+url.search+url.hash);return;}
+ if(partnerMode){const url=new URL(window.location.href);url.searchParams.set('partner','0');url.hash=window.location.hash;window.location.assign(url.pathname+url.search+url.hash);return;}
  const previous=routes.back();if(previous){screen=previous.screen;paymentStep=previous.step;render();window.scrollTo(0,0);return;}
  if(profile&&screen!=='home'){screen='home';paymentStep='offer';render();window.scrollTo(0,0);return;}
  if(tg?.initData&&tg.close)tg.close();
