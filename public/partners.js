@@ -1,5 +1,4 @@
 export async function mountPartner(root,action='status',code=''){
- const back=document.querySelector('#partner-return');if(!back){const a=document.createElement('a');a.id='partner-return';a.href='/';a.className='download';a.textContent='← Вернуться в План Д';root.before(a);}
  root.innerHTML='<span class="eyebrow">ПЛАН Д · ПАРТНЁРЫ</span><h1>Личный кабинет</h1><p role="status">Проверяем доступ через Telegram…</p>';
  const raw=window.Telegram?.WebApp?.initData;
  if(!raw){root.innerHTML='<h1>Вход через Telegram</h1><p>Чтобы создать кабинет и получить личный промокод, открой приложение «План Д» в Telegram и выбери «Стать партнёром» в настройках.</p><a class="contact-button" href="https://t.me/pavel_klevtsov">Запросить доступ</a>';return;}
